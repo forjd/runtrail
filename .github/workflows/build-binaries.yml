@@ -3,6 +3,7 @@ name: Build binaries
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -88,11 +89,11 @@ jobs:
           path: ${{ matrix.artifact }}
           if-no-files-found: error
 
-  publish-latest:
-    name: Publish latest binaries
+  publish:
+    name: Publish binaries
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -105,14 +106,34 @@ jobs:
           cd dist
           sha256sum * > SHA256SUMS
 
-      - name: Publish latest release
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            echo "tag_name=${tag}" >> "$GITHUB_OUTPUT"
+            echo "name=${tag}" >> "$GITHUB_OUTPUT"
+            echo "body=Release binaries for ${tag}." >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=latest" >> "$GITHUB_OUTPUT"
+            echo "name=Latest main build" >> "$GITHUB_OUTPUT"
+            echo "body=Automated binaries built from main. This moving release is used by install.sh by default." >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release binaries
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: Latest main build
-          body: Automated binaries built from main. This moving release is used by install.sh.
-          prerelease: true
-          make_latest: false
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: ${{ steps.meta.outputs.name }}
+          body: ${{ steps.meta.outputs.body }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: ${{ steps.meta.outputs.make_latest }}
           files: |
             dist/*
         env:
