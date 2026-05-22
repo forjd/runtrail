@@ -9,7 +9,9 @@ It is meant to be a cheap black-box recorder for agentic development workflows: 
 MVP complete:
 
 - JSONL schema v1
-- `log`, `tail`, `summarise`, `diff`, `validate`
+- `log`, `tail`, `summarise`, `diff`, `validate`, `repair-prompt`
+- `run` command wrapper for start/end command evidence
+- `repo snapshot` and `repo diff` helpers for Git metadata
 - `ci github-context` helper for safe GitHub Actions metadata capture
 - Rust tests and performance smoke script
 
@@ -30,11 +32,11 @@ scripts/perf-smoke.sh
 
 ## Event schema v1
 
-Each line is one compact JSON object.
+Each line is one compact JSON object. See [`docs/schema-v1.md`](docs/schema-v1.md) for the full envelope and event body conventions.
 
 Required fields:
 
-- `v`: schema version, currently `1`
+- `schema`: schema version, currently `cel.v1`
 - `id`: event ULID
 - `seq`: positive integer sequence number within the log file
 - `ts`: RFC3339 UTC timestamp
@@ -52,8 +54,14 @@ Common fields:
 Example:
 
 ```json
-{"v":1,"id":"01KS...","seq":1,"ts":"2026-05-22T12:34:56Z","event":"agent.note","level":"info","src":"cel","body":{"message":"hello"}}
+{"schema":"cel.v1","id":"01KS...","seq":1,"ts":"2026-05-22T12:34:56Z","event":"agent.note","level":"info","src":"cel","attrs":{},"body":{"message":"hello"}}
 ```
+
+Example logs live in:
+
+- [`examples/browser-qa.jsonl`](examples/browser-qa.jsonl)
+- [`examples/ci-failure.jsonl`](examples/ci-failure.jsonl)
+- [`examples/agent-session.jsonl`](examples/agent-session.jsonl)
 
 ## Commands
 
@@ -97,6 +105,33 @@ cel diff before.jsonl after.jsonl
 ```
 
 The diff reports count deltas, added/removed event IDs, and newly introduced warnings/errors.
+
+### Run a command and capture evidence
+
+```bash
+cel run -- cargo test
+cel run --file .compact-event-log/events.jsonl --cwd . --preview-bytes 4096 -- npm test
+```
+
+`cel run` emits `command.start` and `command.end` events. It returns the child command exit code.
+
+### Capture repository evidence
+
+```bash
+cel repo snapshot
+cel repo diff
+cel repo diff --stat-only
+```
+
+`repo snapshot` captures branch, HEAD, dirty state, and `git status --porcelain` files. `repo diff` captures `git diff --stat` plus the patch unless `--stat-only` is used.
+
+### Generate an agent repair prompt
+
+```bash
+cel repair-prompt --file .compact-event-log/events.jsonl
+```
+
+The prompt includes failure evidence, recent command results, repository context when present, suspected causes, and safe commands to try.
 
 ### Validate a log
 
