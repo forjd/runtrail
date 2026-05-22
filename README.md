@@ -1,7 +1,7 @@
 # runtrail
 
-[![CI](https://github.com/forjd-hermes-bot/runtrail/actions/workflows/ci.yml/badge.svg)](https://github.com/forjd-hermes-bot/runtrail/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/forjd-hermes-bot/runtrail?include_prereleases&sort=semver)](https://github.com/forjd-hermes-bot/runtrail/releases)
+[![CI](https://github.com/forjd/runtrail/actions/workflows/ci.yml/badge.svg)](https://github.com/forjd/runtrail/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/forjd/runtrail?include_prereleases&sort=semver)](https://github.com/forjd/runtrail/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Portable event trails for agentic dev workflows.**
@@ -25,7 +25,7 @@ Coding agents are most useful when failures arrive with portable context instead
 Install the latest binary from GitHub releases:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/forjd-hermes-bot/runtrail/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/forjd/runtrail/main/install.sh | bash
 ```
 
 The installer detects OS/architecture, downloads the matching release asset, verifies `SHA256SUMS` when available, and installs to `~/.local/bin` by default.
@@ -35,7 +35,7 @@ Optional environment variables:
 ```bash
 RUNTRAIL_INSTALL_DIR=/usr/local/bin bash install.sh          # install directory
 RUNTRAIL_INSTALL_TAG=runtrail-v0.3.0 bash install.sh         # release tag
-RUNTRAIL_INSTALL_REPO=forjd-hermes-bot/runtrail bash install.sh
+RUNTRAIL_INSTALL_REPO=forjd/runtrail bash install.sh
 ```
 
 Build from source:

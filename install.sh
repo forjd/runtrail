@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${RUNTRAIL_INSTALL_REPO:-forjd-hermes-bot/runtrail}"
+REPO="${RUNTRAIL_INSTALL_REPO:-forjd/runtrail}"
 TAG="${RUNTRAIL_INSTALL_TAG:-latest}"
 BIN="runtrail"
 INSTALL_DIR="${RUNTRAIL_INSTALL_DIR:-${HOME}/.local/bin}"
@@ -24,12 +24,12 @@ usage() {
 Install runtrail.
 
 Environment variables:
-  RUNTRAIL_INSTALL_REPO  GitHub repo, default: forjd-hermes-bot/runtrail
+  RUNTRAIL_INSTALL_REPO  GitHub repo, default: forjd/runtrail
   RUNTRAIL_INSTALL_TAG   Release tag, default: latest
   RUNTRAIL_INSTALL_DIR   Install directory, default: ~/.local/bin
 
 Example:
-  curl -fsSL https://raw.githubusercontent.com/forjd-hermes-bot/runtrail/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/forjd/runtrail/main/install.sh | bash
 USAGE
 }
 
