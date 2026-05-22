@@ -1,6 +1,9 @@
+pub mod cli;
 pub mod event;
 pub mod log_io;
 
-fn main() {
-    println!("compact-event-log");
+use anyhow::Result;
+
+fn main() -> Result<()> {
+    cli::run()
 }
