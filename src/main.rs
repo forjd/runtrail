@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod command_run;
 pub mod diff;
 pub mod event;
 pub mod git;

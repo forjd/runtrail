@@ -348,3 +348,60 @@ fn repo_diff_logs_stat_and_patch() {
             .contains("hello world")
     );
 }
+
+#[test]
+fn run_command_logs_start_and_end_events() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.jsonl");
+    Command::cargo_bin("cel")
+        .unwrap()
+        .args([
+            "run",
+            "--file",
+            file.to_str().unwrap(),
+            "--cwd",
+            dir.path().to_str().unwrap(),
+            "--",
+            "sh",
+            "-c",
+            "printf hello",
+        ])
+        .assert()
+        .success();
+
+    let raw = std::fs::read_to_string(file).unwrap();
+    let events: Vec<Value> = raw
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0]["event"], "command.start");
+    assert_eq!(events[1]["event"], "command.end");
+    assert_eq!(events[1]["body"]["stdout_preview"], "hello");
+}
+
+#[test]
+fn run_command_returns_child_exit_code_and_logs_error() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.jsonl");
+    Command::cargo_bin("cel")
+        .unwrap()
+        .args([
+            "run",
+            "--file",
+            file.to_str().unwrap(),
+            "--cwd",
+            dir.path().to_str().unwrap(),
+            "--",
+            "sh",
+            "-c",
+            "exit 7",
+        ])
+        .assert()
+        .code(7);
+
+    let raw = std::fs::read_to_string(file).unwrap();
+    assert!(raw.contains("command.end"));
+    assert!(raw.contains("\"level\":\"error\""));
+    assert!(raw.contains("\"exit_code\":7"));
+}

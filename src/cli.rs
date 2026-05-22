@@ -1,3 +1,4 @@
+use crate::command_run;
 use crate::diff::LogDiff;
 use crate::event::{Event, Level, NewEvent};
 use crate::git;
@@ -34,6 +35,24 @@ enum Commands {
     Ci(CiArgs),
     /// Git repository helpers.
     Repo(RepoArgs),
+    /// Run a command and log start/end events.
+    Run(RunArgs),
+}
+
+#[derive(Debug, Parser)]
+struct RunArgs {
+    /// Log file path.
+    #[arg(long, default_value = DEFAULT_LOG_FILE)]
+    file: PathBuf,
+    /// Command working directory.
+    #[arg(long, default_value = ".")]
+    cwd: PathBuf,
+    /// Number of stdout/stderr bytes to keep in previews.
+    #[arg(long, default_value_t = 4096)]
+    preview_bytes: usize,
+    /// Command and args to run.
+    #[arg(required = true, trailing_var_arg = true, allow_hyphen_values = true)]
+    command: Vec<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -195,6 +214,7 @@ pub fn run() -> Result<()> {
         Commands::Diff(args) => diff(args),
         Commands::Ci(args) => ci(args),
         Commands::Repo(args) => repo(args),
+        Commands::Run(args) => run_command(args),
     }
 }
 
@@ -334,6 +354,49 @@ fn repo_diff(args: RepoDiffArgs) -> Result<()> {
         parent_span_id: None,
         duration_ms: None,
     })
+}
+
+fn run_command(args: RunArgs) -> Result<()> {
+    let start_seq = next_seq(&args.file)
+        .with_context(|| format!("failed to inspect {}", args.file.display()))?;
+    let result = command_run::run_command(&args.cwd, &args.command, args.preview_bytes)?;
+    let mut attrs = Map::new();
+    attrs.insert("cmd".to_string(), Value::String(args.command.join(" ")));
+    append_new_event(AppendNewEvent {
+        file: &args.file,
+        seq: start_seq,
+        name: "command.start".to_string(),
+        level: Level::Info,
+        src: Some("cel".to_string()),
+        attrs: attrs.clone(),
+        body: result.start_body,
+        trace_id: None,
+        span_id: None,
+        parent_span_id: None,
+        duration_ms: None,
+    })?;
+    append_new_event(AppendNewEvent {
+        file: &args.file,
+        seq: start_seq + 1,
+        name: "command.end".to_string(),
+        level: if result.exit_code == 0 {
+            Level::Info
+        } else {
+            Level::Error
+        },
+        src: Some("cel".to_string()),
+        attrs,
+        body: result.end_body,
+        trace_id: None,
+        span_id: None,
+        parent_span_id: None,
+        duration_ms: None,
+    })?;
+    if result.exit_code == 0 {
+        Ok(())
+    } else {
+        std::process::exit(result.exit_code);
+    }
 }
 
 fn github_context(args: CiGithubContextArgs) -> Result<()> {
