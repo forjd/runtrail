@@ -86,14 +86,14 @@ runtrail repair-prompt --file .runtrail/events.jsonl > repair.md
 Each line in the log is one compact JSON object:
 
 ```json
-{"schema":"cel.v1","id":"01KS...","seq":1,"ts":"2026-05-22T12:34:56Z","event":"agent.note","level":"info","src":"runtrail","attrs":{},"body":{"message":"Investigating failing CI"}}
+{"schema":"runtrail.v1","id":"01KS...","seq":1,"ts":"2026-05-22T12:34:56Z","event":"agent.note","level":"info","src":"runtrail","attrs":{},"body":{"message":"Investigating failing CI"}}
 ```
 
 Required envelope fields:
 
 | Field | Meaning |
 | --- | --- |
-| `schema` | Schema version. Current MVP schema is `cel.v1`. |
+| `schema` | Schema identifier. Current schema is `runtrail.v1`. |
 | `id` | Event ULID. |
 | `seq` | Positive sequence number within the log file. |
 | `ts` | RFC3339 UTC timestamp. |

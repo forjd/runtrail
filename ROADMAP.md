@@ -75,17 +75,10 @@ These roadmap items have already been implemented and should now be treated as s
 
 Goal: prepare the event format for a stable 1.0 promise.
 
-- Resolve the schema naming/versioning story:
-  - keep `cel.v1` for compatibility, or
-  - migrate to a `runtrail.v1` schema identifier before 1.0.
+- Treat `runtrail.v1` as the current schema identifier for new logs.
 - Document producer/consumer compatibility rules for the 1.x line.
 - Add migration guidance for any pre-1.0 envelope differences.
-- Add golden fixture tests for representative event logs:
-  - command run success/failure,
-  - CI capture,
-  - browser QA,
-  - agent session,
-  - repair/replay handoff.
+- Use current `runtrail.v1` schema examples for every major event shape: command success/failure, CI capture, browser QA, agent session, and repair/replay handoff.
 - Define how strict validation should evolve beyond `seq == line_number` without breaking normal JSONL workflows.
 - Decide whether compact binary export is needed before 1.0 or should remain post-1.0.
 
@@ -130,12 +123,12 @@ Goal: provide a stable CLI and schema that other tools can safely produce and co
 
 ## Suggested Immediate Next PRs
 
-1. **Schema identifier decision**
-   - Decide whether the stable schema should remain `cel.v1` or become `runtrail.v1`.
-   - Document the compatibility and migration plan.
+1. **Schema compatibility docs**
+   - Expand producer/consumer compatibility guidance for `runtrail.v1`.
+   - Document how future schema changes should be introduced.
 
-2. **Golden fixture tests**
-   - Add checked-in representative JSONL fixtures under `examples/` or `tests/fixtures/`.
+2. **More golden fixture coverage**
+   - Add additional edge-case JSONL fixtures under `examples/` or `tests/fixtures/`.
    - Validate them in unit/integration tests and strict mode where appropriate.
 
 3. **GitHub Actions repair workflow docs**
@@ -175,7 +168,7 @@ These are intentionally deferred until the core workflow proves itself.
 
 ## Open Questions
 
-- Should the schema version remain `cel.v1` for compatibility, or move to a `runtrail.v1` name before 1.0?
+- Should `runtrail.v1` remain the only accepted schema through the 1.x line, or should readers support compatibility aliases for pre-1.0 logs?
 - Should compact binary export exist before 1.0, or stay deferred until JSONL limitations are proven?
 - How much output preview is useful before logs become too large or risky?
 - Which integrations should be first-class examples beyond Hermes, GitHub Actions, browser QA, and generic shell workflows?

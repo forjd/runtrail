@@ -14,9 +14,11 @@ pub enum Level {
     Error,
 }
 
+pub const SCHEMA: &str = "runtrail.v1";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
-    pub v: u8,
+    pub schema: String,
     pub id: String,
     pub seq: u64,
     pub ts: String,
@@ -60,7 +62,7 @@ pub struct NewEvent {
 impl Event {
     pub fn new(input: NewEvent) -> Self {
         Self {
-            v: 1,
+            schema: SCHEMA.to_string(),
             id: Ulid::new().to_string(),
             seq: input.seq,
             ts: OffsetDateTime::now_utc()
@@ -79,8 +81,8 @@ impl Event {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        if self.v != 1 {
-            return Err(format!("unsupported schema version {}", self.v));
+        if self.schema != SCHEMA {
+            return Err(format!("unsupported schema {}", self.schema));
         }
         if self.id.trim().is_empty() {
             return Err("id is required".to_string());
@@ -136,8 +138,11 @@ mod tests {
     }
 
     #[test]
-    fn valid_minimal_event_passes_validation() {
+    fn new_events_use_runtrail_schema_identifier() {
         let event = new_event(1, "agent.note");
+        let serialized = serde_json::to_value(&event).unwrap();
+        assert_eq!(serialized["schema"], "runtrail.v1");
+        assert!(serialized.get("v").is_none());
         assert!(event.validate().is_ok());
     }
 
@@ -157,6 +162,13 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_schema_fails_validation() {
+        let mut event = new_event(1, "agent.note");
+        event.schema = "cel.v1".to_string();
+        assert_eq!(event.validate().unwrap_err(), "unsupported schema cel.v1");
+    }
+
+    #[test]
     fn invalid_trace_id_fails_validation() {
         let mut event = new_event(1, "agent.note");
         event.trace_id = Some("ABC".to_string());
@@ -172,8 +184,7 @@ mod tests {
 
     #[test]
     fn invalid_level_string_fails_deserialization() {
-        let json =
-            r#"{"v":1,"id":"evt","seq":1,"ts":"2026-05-22T12:00:00Z","event":"x","level":"loud"}"#;
+        let json = r#"{"schema":"runtrail.v1","id":"evt","seq":1,"ts":"2026-05-22T12:00:00Z","event":"x","level":"loud"}"#;
         let parsed: Result<Event, _> = serde_json::from_str(json);
         assert!(parsed.is_err());
     }

@@ -33,7 +33,7 @@ Each log line is one compact JSON object.
 
 Required fields:
 
-- `v`: integer schema version, initially `1`.
+- `schema`: string schema identifier, currently `runtrail.v1`.
 - `id`: unique event ID, generated as ULID.
 - `seq`: positive integer sequence number within the log file.
 - `ts`: RFC3339 UTC timestamp.
@@ -56,7 +56,7 @@ Optional fields:
 Example:
 
 ```json
-{"v":1,"id":"01J...","seq":1,"ts":"2026-05-22T12:34:56Z","level":"info","event":"agent.tool.end","src":"hermes-agent","attrs":{"tool.name":"terminal"},"body":{"cmd":"cargo test","exit_code":0}}
+{"schema":"runtrail.v1","id":"01J...","seq":1,"ts":"2026-05-22T12:34:56Z","level":"info","event":"agent.tool.end","src":"hermes-agent","attrs":{"tool.name":"terminal"},"body":{"cmd":"cargo test","exit_code":0}}
 ```
 
 ## Event naming

@@ -219,6 +219,30 @@ fn validate_strict_accepts_seq_that_matches_line_number() {
 }
 
 #[test]
+fn golden_example_fixtures_are_valid_and_strictly_sequenced() {
+    for fixture in [
+        "examples/agent-session.jsonl",
+        "examples/browser-qa.jsonl",
+        "examples/ci-failure.jsonl",
+        "examples/command-failure.jsonl",
+        "examples/repair-handoff.jsonl",
+    ] {
+        Command::cargo_bin("runtrail")
+            .unwrap()
+            .args(["validate", "--file", fixture, "--strict"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("valid"));
+
+        let raw = std::fs::read_to_string(fixture).unwrap();
+        assert!(
+            raw.lines()
+                .all(|line| line.contains(r#""schema":"runtrail.v1""#))
+        );
+    }
+}
+
+#[test]
 fn summarise_outputs_counts_warnings_and_recent_events() {
     let dir = tempdir().unwrap();
     let file = dir.path().join("events.jsonl");
