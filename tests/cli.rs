@@ -438,6 +438,33 @@ fn repair_prompt_outputs_agent_ready_markdown() {
 }
 
 #[test]
+fn replay_outputs_conservative_command_hints() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.jsonl");
+    Command::cargo_bin("runtrail")
+        .unwrap()
+        .args([
+            "run",
+            "--file",
+            file.to_str().unwrap(),
+            "--",
+            "sh",
+            "-c",
+            "printf ok",
+        ])
+        .assert()
+        .success();
+
+    Command::cargo_bin("runtrail")
+        .unwrap()
+        .args(["replay", "--file", file.to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("runtrail Replay Hints"))
+        .stdout(predicate::str::contains("sh -c 'printf ok'"));
+}
+
+#[test]
 fn ci_capture_logs_fixture_context_and_artifacts() {
     let dir = tempdir().unwrap();
     let file = dir.path().join("events.jsonl");

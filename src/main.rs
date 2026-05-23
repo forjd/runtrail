@@ -7,6 +7,7 @@ pub mod git;
 pub mod log_io;
 pub mod redaction;
 pub mod repair;
+pub mod replay;
 pub mod summary;
 
 use anyhow::Result;

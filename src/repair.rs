@@ -1,6 +1,44 @@
 use crate::event::{Event, Level};
 use serde_json::Value;
 
+#[derive(Debug, Clone, Default)]
+pub struct EventFilter {
+    pub event: Option<String>,
+    pub level: Option<Level>,
+    pub trace_id: Option<String>,
+}
+
+impl EventFilter {
+    pub fn matches(&self, event: &Event) -> bool {
+        if self.event.as_ref().is_some_and(|name| &event.event != name) {
+            return false;
+        }
+        if self
+            .level
+            .as_ref()
+            .is_some_and(|level| &event.level != level)
+        {
+            return false;
+        }
+        if self
+            .trace_id
+            .as_ref()
+            .is_some_and(|trace_id| event.trace_id.as_ref() != Some(trace_id))
+        {
+            return false;
+        }
+        true
+    }
+}
+
+pub fn filter_events(events: &[Event], filter: &EventFilter) -> Vec<Event> {
+    events
+        .iter()
+        .filter(|event| filter.matches(event))
+        .cloned()
+        .collect()
+}
+
 pub fn repair_prompt(events: &[Event]) -> String {
     let mut output = String::new();
     output.push_str("# Agent Repair Prompt\n\n");

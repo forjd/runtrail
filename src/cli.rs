@@ -5,6 +5,7 @@ use crate::event::{Event, Level, NewEvent};
 use crate::git;
 use crate::log_io::{append_event, next_seq, read_events, validate_file};
 use crate::repair;
+use crate::replay;
 use crate::summary::{Summary, format_level};
 use anyhow::{Context, Result, anyhow};
 use clap::{CommandFactory, Parser, Subcommand};
@@ -43,6 +44,8 @@ enum Commands {
     Run(RunArgs),
     /// Generate an agent-ready repair prompt from an event log.
     RepairPrompt(RepairPromptArgs),
+    /// Show conservative replay command hints from an event log.
+    Replay(ReplayArgs),
     /// Generate shell completion scripts.
     Completions(CompletionsArgs),
 }
@@ -56,6 +59,22 @@ struct CompletionsArgs {
 
 #[derive(Debug, Parser)]
 struct RepairPromptArgs {
+    /// Log file path.
+    #[arg(long, default_value = DEFAULT_LOG_FILE)]
+    file: PathBuf,
+    /// Only include events with this name.
+    #[arg(long)]
+    event: Option<String>,
+    /// Only include events at this level.
+    #[arg(long)]
+    level: Option<LevelArg>,
+    /// Only include events with this trace ID.
+    #[arg(long)]
+    trace_id: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct ReplayArgs {
     /// Log file path.
     #[arg(long, default_value = DEFAULT_LOG_FILE)]
     file: PathBuf,
@@ -253,6 +272,7 @@ pub fn run() -> Result<()> {
         Commands::Repo(args) => repo(args),
         Commands::Run(args) => run_command(args),
         Commands::RepairPrompt(args) => repair_prompt(args),
+        Commands::Replay(args) => replay(args),
         Commands::Completions(args) => completions(args),
     }
 }
@@ -352,7 +372,20 @@ fn diff(args: DiffArgs) -> Result<()> {
 
 fn repair_prompt(args: RepairPromptArgs) -> Result<()> {
     let events = read_events(&args.file)?;
-    print!("{}", repair::repair_prompt(&events));
+    let filter = repair::EventFilter {
+        event: args.event,
+        level: args.level.map(Into::into),
+        trace_id: args.trace_id,
+    };
+    let filtered = repair::filter_events(&events, &filter);
+    print!("{}", repair::repair_prompt(&filtered));
+    Ok(())
+}
+
+fn replay(args: ReplayArgs) -> Result<()> {
+    let events = read_events(&args.file)?;
+    let hints = replay::hints(&events);
+    print!("{}", replay::to_markdown(&hints));
     Ok(())
 }
 
