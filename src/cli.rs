@@ -3,6 +3,7 @@ use crate::command_run;
 use crate::diff::LogDiff;
 use crate::event::{Event, Level, NewEvent};
 use crate::git;
+use crate::index;
 use crate::log_io::{append_event, next_seq, read_events, validate_file};
 use crate::repair;
 use crate::replay;
@@ -46,6 +47,10 @@ enum Commands {
     RepairPrompt(RepairPromptArgs),
     /// Show conservative replay command hints from an event log.
     Replay(ReplayArgs),
+    /// Build a lightweight JSON index for a trail.
+    Index(IndexArgs),
+    /// Inspect compact human-readable events.
+    Inspect(InspectArgs),
     /// Generate shell completion scripts.
     Completions(CompletionsArgs),
 }
@@ -78,6 +83,29 @@ struct ReplayArgs {
     /// Log file path.
     #[arg(long, default_value = DEFAULT_LOG_FILE)]
     file: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct IndexArgs {
+    /// Log file path.
+    #[arg(long, default_value = DEFAULT_LOG_FILE)]
+    file: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct InspectArgs {
+    /// Log file path.
+    #[arg(long, default_value = DEFAULT_LOG_FILE)]
+    file: PathBuf,
+    /// Only include events with this name.
+    #[arg(long)]
+    event: Option<String>,
+    /// Only include events at this level.
+    #[arg(long)]
+    level: Option<LevelArg>,
+    /// Number of recent events to inspect.
+    #[arg(long, default_value_t = 20)]
+    lines: usize,
 }
 
 #[derive(Debug, Parser)]
@@ -273,6 +301,8 @@ pub fn run() -> Result<()> {
         Commands::Run(args) => run_command(args),
         Commands::RepairPrompt(args) => repair_prompt(args),
         Commands::Replay(args) => replay(args),
+        Commands::Index(args) => index(args),
+        Commands::Inspect(args) => inspect(args),
         Commands::Completions(args) => completions(args),
     }
 }
@@ -386,6 +416,34 @@ fn replay(args: ReplayArgs) -> Result<()> {
     let events = read_events(&args.file)?;
     let hints = replay::hints(&events);
     print!("{}", replay::to_markdown(&hints));
+    Ok(())
+}
+
+fn index(args: IndexArgs) -> Result<()> {
+    let events = read_events(&args.file)?;
+    let entries = index::build_index(&events);
+    println!("{}", serde_json::to_string_pretty(&entries)?);
+    Ok(())
+}
+
+fn inspect(args: InspectArgs) -> Result<()> {
+    let events = read_events(&args.file)?;
+    let filter = repair::EventFilter {
+        event: args.event,
+        level: args.level.map(Into::into),
+        trace_id: None,
+    };
+    let filtered = repair::filter_events(&events, &filter);
+    let start = filtered.len().saturating_sub(args.lines);
+    for event in &filtered[start..] {
+        println!(
+            "#{:<4} {:<5} {:<24} {}",
+            event.seq,
+            format_level(&event.level),
+            event.event,
+            event.body
+        );
+    }
     Ok(())
 }
 

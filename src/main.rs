@@ -4,6 +4,7 @@ pub mod command_run;
 pub mod diff;
 pub mod event;
 pub mod git;
+pub mod index;
 pub mod log_io;
 pub mod redaction;
 pub mod repair;

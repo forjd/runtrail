@@ -438,6 +438,47 @@ fn repair_prompt_outputs_agent_ready_markdown() {
 }
 
 #[test]
+fn index_and_inspect_make_trails_easier_to_query() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.jsonl");
+    Command::cargo_bin("runtrail")
+        .unwrap()
+        .args([
+            "log",
+            "--file",
+            file.to_str().unwrap(),
+            "--event",
+            "agent.note",
+            "--message",
+            "hello",
+        ])
+        .assert()
+        .success();
+
+    Command::cargo_bin("runtrail")
+        .unwrap()
+        .args(["index", "--file", file.to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("agent.note"))
+        .stdout(predicate::str::contains("seq"));
+
+    Command::cargo_bin("runtrail")
+        .unwrap()
+        .args([
+            "inspect",
+            "--file",
+            file.to_str().unwrap(),
+            "--event",
+            "agent.note",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("agent.note"))
+        .stdout(predicate::str::contains("hello"));
+}
+
+#[test]
 fn replay_outputs_conservative_command_hints() {
     let dir = tempdir().unwrap();
     let file = dir.path().join("events.jsonl");
