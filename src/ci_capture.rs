@@ -1,10 +1,10 @@
 use crate::git;
 use serde_json::{Value, json};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-pub fn capture_body(cwd: &Path) -> anyhow::Result<Value> {
-    let artifacts_dir = cwd.join(".runtrail/artifacts");
+pub fn capture_body(cwd: &Path, log_file: &Path) -> anyhow::Result<Value> {
+    let artifacts_dir = artifacts_dir_for_log(log_file);
     fs::create_dir_all(&artifacts_dir)?;
     Ok(json!({
         "github": github_context(),
@@ -14,7 +14,8 @@ pub fn capture_body(cwd: &Path) -> anyhow::Result<Value> {
         },
         "dependencies": dependency_metadata(cwd),
         "artifacts": {
-            "dir": ".runtrail/artifacts"
+            "dir": display_artifact_dir(cwd, &artifacts_dir),
+            "base": "log_file_parent"
         },
         "unsupported": [
             {
@@ -31,6 +32,24 @@ pub fn capture_body(cwd: &Path) -> anyhow::Result<Value> {
             }
         ]
     }))
+}
+
+fn artifacts_dir_for_log(log_file: &Path) -> PathBuf {
+    log_file
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+        .join("artifacts")
+}
+
+fn display_artifact_dir(cwd: &Path, artifacts_dir: &Path) -> String {
+    artifacts_dir
+        .strip_prefix(cwd)
+        .ok()
+        .filter(|relative| !relative.as_os_str().is_empty())
+        .unwrap_or(artifacts_dir)
+        .display()
+        .to_string()
 }
 
 fn github_context() -> Value {
@@ -93,8 +112,7 @@ mod tests {
         assert!(status.success());
     }
 
-    #[test]
-    fn capture_body_creates_artifact_dir_and_reports_dependency_metadata() {
+    fn init_repo() -> tempfile::TempDir {
         let dir = tempdir().unwrap();
         git(dir.path(), &["init"]);
         git(dir.path(), &["config", "user.email", "test@example.com"]);
@@ -102,12 +120,31 @@ mod tests {
         fs::write(dir.path().join("Cargo.toml"), "[package]\nname='x'\n").unwrap();
         git(dir.path(), &["add", "Cargo.toml"]);
         git(dir.path(), &["commit", "-m", "initial"]);
+        dir
+    }
 
-        let body = capture_body(dir.path()).unwrap();
+    #[test]
+    fn capture_body_creates_artifact_dir_next_to_default_log_and_reports_metadata() {
+        let dir = init_repo();
+        let log_file = dir.path().join(".runtrail/events.jsonl");
+
+        let body = capture_body(dir.path(), &log_file).unwrap();
 
         assert!(dir.path().join(".runtrail/artifacts").exists());
         assert_eq!(body["dependencies"]["rust"]["cargo_toml"], true);
         assert_eq!(body["artifacts"]["dir"], ".runtrail/artifacts");
+        assert_eq!(body["artifacts"]["base"], "log_file_parent");
         assert!(body["unsupported"].as_array().unwrap().len() >= 3);
+    }
+
+    #[test]
+    fn capture_body_places_artifacts_next_to_custom_log_file() {
+        let dir = init_repo();
+        let log_file = dir.path().join("custom/events.jsonl");
+
+        let body = capture_body(dir.path(), &log_file).unwrap();
+
+        assert!(dir.path().join("custom/artifacts").exists());
+        assert_eq!(body["artifacts"]["dir"], "custom/artifacts");
     }
 }

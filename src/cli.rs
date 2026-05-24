@@ -555,7 +555,7 @@ fn ci_capture(args: CiCaptureArgs) -> Result<()> {
         level: Level::Info,
         src: Some("runtrail".to_string()),
         attrs: Map::new(),
-        body: ci_capture::capture_body(&args.cwd)?,
+        body: ci_capture::capture_body(&args.cwd, &args.file)?,
         trace_id: None,
         span_id: None,
         parent_span_id: None,

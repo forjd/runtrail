@@ -737,7 +737,7 @@ fn replay_outputs_conservative_command_hints() {
 #[test]
 fn ci_capture_logs_fixture_context_and_artifacts() {
     let dir = tempdir().unwrap();
-    let file = dir.path().join("events.jsonl");
+    let file = dir.path().join(".runtrail/events.jsonl");
     std::process::Command::new("git")
         .args(["init"])
         .current_dir(dir.path())
