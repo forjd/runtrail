@@ -29,5 +29,6 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ steps.release.outputs.tag_name }}
-        run: gh workflow run build-binaries.yml --ref main -f publish_tag="$TAG_NAME"
+        run: gh workflow run build-binaries.yml --repo "$GH_REPO" --ref main -f publish_tag="$TAG_NAME"
